@@ -1,0 +1,5 @@
+name = "jev-tiny"
+description = "A tiny job: a quick lookup, a rename, a one-line answer, a yes/no or a simple fact. Picked by the Jev router."
+developer_instructions = "You were spawned for a tiny, low-stakes job. Do it directly and concisely, then return the result. No exploratory tangents."
+model = "gpt-6-luna"
+model_reasoning_effort = "low"

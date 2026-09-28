@@ -1,0 +1,5 @@
+name = "jev-hardest"
+description = "The hardest kind of job: strategy, high-stakes judgment, or anything where a wrong call is expensive. Picked by the Jev router."
+developer_instructions = "You were spawned for the hardest kind of job: high-stakes, easy to get subtly wrong, worth extra care. Think it through properly, delegate to your own sub-agents if that helps, then return the finished result with your reasoning where it matters."
+model = "gpt-6-astra"
+model_reasoning_effort = "ultra"

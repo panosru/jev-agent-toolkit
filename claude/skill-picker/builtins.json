@@ -1,0 +1,20 @@
+{
+  "_note": "Skills built into Claude Code (no files on disk). One line each: what it's for.",
+  "dataviz": "Design any chart, graph, dashboard, KPI tile or data visualization, in any medium.",
+  "artifact-design": "Design rules to load before writing an HTML Artifact page (claude.ai published page).",
+  "artifact-diagramming": "Draw diagrams inside an Artifact page with inline SVG.",
+  "artifact-capabilities": "Give an Artifact page runtime features: shared data, forms, uploads, live data, asking Claude.",
+  "update-config": "Change Claude Code settings.json: hooks, permissions, env vars, automatic 'whenever X do Y' behaviors.",
+  "keybindings-help": "Customize Claude Code keyboard shortcuts in keybindings.json.",
+  "code-review": "Review the current diff, branch or PR for bugs at a chosen effort level; optionally post or fix.",
+  "simplify": "Clean up recently changed code for reuse, simplicity and efficiency (quality only, not bug hunting).",
+  "fewer-permission-prompts": "Scan past sessions and add an allowlist so Claude Code asks for permission less often.",
+  "loop": "Run a prompt or slash command repeatedly on an interval, e.g. check a deploy every 5 minutes.",
+  "schedule": "Create or manage scheduled cloud agents that run on a cron schedule or once at a set time.",
+  "claude-api": "Build with the Claude API / Anthropic SDK: model IDs, pricing, tool use, caching, agents.",
+  "workflow-authoring": "Write a multi-agent Workflow script (only when a workflow was explicitly requested).",
+  "claude-in-chrome": "Drive the Chrome browser: click, fill forms, read pages, screenshots, console logs.",
+  "run": "Launch this project's app to see a change working, take a screenshot or confirm it runs.",
+  "init": "Create a CLAUDE.md file describing the current codebase.",
+  "security-review": "Security review of the pending changes on the current branch."
+}

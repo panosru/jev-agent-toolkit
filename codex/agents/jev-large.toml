@@ -1,0 +1,5 @@
+name = "jev-large"
+description = "A large job: a multi-step build, research across several sources, or a long document. Picked by the Jev router."
+developer_instructions = "You were spawned for a substantial job that needs real depth. Do the whole thing properly with the tools you have, then return the finished result. If something essential is missing, say what's missing in one line rather than guessing."
+model = "gpt-6-astra"
+model_reasoning_effort = "high"

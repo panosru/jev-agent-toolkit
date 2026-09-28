@@ -1,0 +1,5 @@
+{
+  "_note": "Hand-written one-line descriptions that replace the auto-derived ones. Jev picks by these lines, so a clearer line is the usual fix for a wrong pick. Copy this file to overrides.json, edit, then run: cx-skill-pick --rebuild",
+  "lines": {},
+  "exclude": []
+}

@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+"""jev-router - control the Jev model router for Claude Code.
+
+  jev-router on | off          switch the router (it is OFF after a fresh install)
+  jev-router status            what it is doing, what it has decided so far, what it has cost
+  jev-router rules             list your routing rules and the tags you can type
+  jev-router check "message"   offline dry run of tags/rules for a message (never calls Jev)
+  jev-router doctor            self-check: hook, helper agents, key, and one live Jev call
+"""
+import collections
+import importlib.util
+import json
+import os
+import sys
+import time
+
+HOME = os.path.expanduser("~")
+DIR = os.path.join(HOME, ".claude/jev-router")
+FLAG = os.path.join(DIR, "enabled")
+LOG = os.path.join(DIR, "log.jsonl")
+HOOKS_FILE = os.path.join(HOME, ".claude/settings.json")
+AGENT_DIR = os.path.join(HOME, ".claude/agents")
+AGENT_EXT = ".md"
+CMD = "jev-router"
+TITLE = "Jev router (Claude Code)"
+NOUN = "helper"
+TIERS = ["tiny", "everyday", "large", "hardest"]
+PRIVACY = ("While ON, every message you type is sent through OpenRouter to TypeSafe (the company\n"
+           "that makes Jev) to be sized. Keep it OFF for private or client work.")
+
+
+def _router():
+    spec = importlib.util.spec_from_file_location("router", os.path.join(DIR, "router.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def status():
+    r = _router()
+    on = os.path.exists(FLAG)
+    _, base = r.current_baseline()
+    print(f"{TITLE}: {'ON' if on else 'OFF'}   session default model: {base}")
+    print(f"Tiny jobs always go to the smallest model; other sizes go to a {NOUN} only when they need a")
+    print("bigger model than your session default.")
+    rows = []
+    if os.path.exists(LOG):
+        with open(LOG) as f:
+            rows = [json.loads(line) for line in f if line.strip()]
+    if not rows:
+        print("No messages routed yet.")
+    else:
+        routed = [x for x in rows if "size" in x]
+        by_size = collections.Counter(x["size"] for x in routed if x.get("outcome") == "delegated")
+        outcomes = collections.Counter(x.get("outcome") for x in rows)
+        cost = sum(x.get("cost_usd") or 0 for x in rows)
+        ms = [x["ms"] for x in routed if x.get("ms")]
+        print(f"Messages seen: {len(rows)}  (since {rows[0]['ts']})")
+        print(f"Sent to a {NOUN}:")
+        for t in TIERS:
+            print(f"  {t:<9} {by_size.get(t, 0)}")
+        print(f"Kept by the main session: {outcomes.get('self:covered', 0)} already your size, "
+              f"{outcomes.get('self:unsure', 0)} Jev unsure, {outcomes.get('self:followup', 0)} follow-up replies")
+        vias = collections.Counter(x.get("via") for x in rows if x.get("via"))
+        if vias:
+            print("Overrides used: " + ", ".join(f"{n}x {k}" for k, n in vias.most_common()))
+        if outcomes.get("self:here"):
+            print(f"Kept in this session by @here / rule: {outcomes['self:here']}")
+        print(f"Skipped (slash/! commands): {outcomes.get('skipped', 0)}   "
+              f"Errors (passed through): {outcomes.get('error', 0)}")
+        if ms:
+            print(f"Jev time: avg {sum(ms) / len(ms):.0f} ms, max {max(ms)} ms")
+        print(f"Jev cost so far: ${cost:.6f}")
+    if on:
+        print("\n" + PRIVACY)
+
+
+def show_rules():
+    r = _router()
+    print(f"Rules file: {r.RULES_FILE}")
+    rules = r.load_rules()
+    if not rules:
+        print("No valid rules. (Tags still work.)")
+    for i, x in enumerate(rules, 1):
+        effects = ", ".join(f"{k}={x[k]}" for k in ("force", "min", "max") if x[k])
+        print(f"  {i}. {effects:<22} when /{x['rx'].pattern}/  -- {x['note']}")
+    print("Tags: " + " ".join("@" + w for w in sorted(r.tag_aliases())))
+
+
+def check(message):
+    """Offline dry run: shows what a tag or rule would do. Never calls Jev."""
+    r = _router()
+    tag = r.parse_tag(message)
+    hits = r.matching_rules(message)
+    print(f"tag:   {'@' + tag[0] + ' -> ' + tag[1] if tag else 'none'}")
+    if hits:
+        for x in hits:
+            effects = ", ".join(f"{k}={x[k]}" for k in ("force", "min", "max") if x[k])
+            print(f"rule:  {effects}  ({x['note']})")
+    else:
+        print("rule:  none matched")
+    if tag or any(x["force"] for x in hits):
+        d, _ = r.route(message)
+        print("result: " + r.describe(d))
+    else:
+        print("result: Jev will size it, then any min/max rule above is applied on top (not called here).")
+
+
+def doctor():
+    r = _router()
+    problems = 0
+
+    def show(status_word, text):
+        nonlocal problems
+        if status_word == "FAIL":
+            problems += 1
+        print(f"  {status_word:<4}  {text}")
+
+    print(f"{TITLE} doctor")
+    show("ok" if sys.version_info >= (3, 8) else "FAIL", f"python {sys.version.split()[0]} (3.8+ required)")
+    try:
+        cfg = json.load(open(HOOKS_FILE))
+        cmds = [h.get("command", "") for g in cfg.get("hooks", {}).get("UserPromptSubmit", [])
+                for h in g.get("hooks", [])]
+    except (OSError, json.JSONDecodeError):
+        cmds = []
+    show("ok" if any("jev-router/router.py" in c for c in cmds) else "FAIL",
+         f"UserPromptSubmit hook registered in {HOOKS_FILE}")
+    missing = [t for t in TIERS if not os.path.exists(os.path.join(AGENT_DIR, f"jev-{t}{AGENT_EXT}"))]
+    show("ok" if not missing else "FAIL",
+         "helper agents present" if not missing else f"missing helper agents: {', '.join(missing)}")
+    show("ok" if os.path.exists(FLAG) else "info",
+         "router is ON" if os.path.exists(FLAG) else f"router is OFF (enable with: {CMD} on)")
+    show("ok", f"{len(r.load_rules())} routing rule(s) loaded from {r.RULES_FILE}")
+    _, base = r.current_baseline()
+    show("ok", f"session default model detected: {base}")
+    key = None
+    try:
+        key = r.api_key()
+        show("ok", f"OpenRouter key resolved ({len(key)} characters, never displayed)")
+    except Exception as e:  # noqa: BLE001 - report any resolution failure plainly
+        show("FAIL", str(e))
+    if key:
+        try:
+            r.HTTP_TIMEOUT = 10.0
+            t0 = time.perf_counter()
+            data = r.ask_jev("What is the capital of France?", key)
+            ms = round((time.perf_counter() - t0) * 1000)
+            size = data["answers"]["size"]["choice"]
+            cost = data.get("usage", {}).get("cost")
+            show("ok", f"live Jev call worked: sized a trivial question as '{size}' in {ms} ms (cost ${cost})")
+        except Exception as e:  # noqa: BLE001
+            show("FAIL", f"live Jev call failed: {type(e).__name__}: {str(e)[:120]}")
+    print("All good." if not problems else f"{problems} problem(s) found.")
+    sys.exit(1 if problems else 0)
+
+
+def main():
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
+    if cmd == "on":
+        os.makedirs(DIR, exist_ok=True)
+        open(FLAG, "w").close()
+        print(f"{TITLE} is ON. It applies from your next message.\n" + PRIVACY)
+    elif cmd == "off":
+        if os.path.exists(FLAG):
+            os.remove(FLAG)
+        print(f"{TITLE} is OFF. Messages no longer leave your computer for sizing.")
+    elif cmd == "status":
+        status()
+    elif cmd == "rules":
+        show_rules()
+    elif cmd == "check":
+        if len(sys.argv) < 3:
+            sys.exit(f'usage: {CMD} check "your message"')
+        check(" ".join(sys.argv[2:]))
+    elif cmd == "doctor":
+        doctor()
+    else:
+        sys.exit(f'usage: {CMD} on | off | status | rules | check "message" | doctor')
+
+
+if __name__ == "__main__":
+    main()

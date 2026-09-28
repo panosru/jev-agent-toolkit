@@ -1,0 +1,10 @@
+{
+  "_help": "Routing rules. Each rule: match = regex (case-insensitive, searched in your message); then one or more of force = tiny|everyday|large|hardest|here (skip Jev, use this tier; 'here' = stay in this session), min = never go below this tier, max = never go above this tier (only applied when Jev is sure). note = the label shown in the status line. A leading @tag in the message beats every rule. Test a message offline with the CLI: check \"your message\"",
+  "rules": [
+    {
+      "match": "cloudflare|\\bdns\\b|\\bdomains?\\b|nameserver|registrar|\\bdeploy(ing|ment|ed)?\\b|\\binvoices?\\b|\\bdelet(e|ing|ed)\\b",
+      "min": "everyday",
+      "note": "infra/money/destructive: never the cheapest model"
+    }
+  ]
+}

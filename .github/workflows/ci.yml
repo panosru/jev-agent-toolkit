@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege: nothing gets write access unless a job asks for it.
+permissions: {}
+
+jobs:
+  test:
+    name: tests (python ${{ matrix.python }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Byte-compile every script
+        run: python -m compileall -q claude codex
+      - name: Unit tests
+        run: python -m unittest discover -s tests -t . -v
+
+  lint:
+    name: shellcheck + secret patterns
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: shellcheck
+        run: shellcheck -x install.sh
+      - name: No secrets or personal paths in the tree
+        run: |
+          set -eu
+          if grep -rEn --exclude-dir=.git --exclude-dir=tests \
+               -e 'sk-or-[A-Za-z0-9_-]{16,}' -e 'gh[pousr]_[A-Za-z0-9]{30,}' \
+               -e '-----BEGIN [A-Z ]*PRIVATE KEY-----' -e 'AKIA[0-9A-Z]{16}' .; then
+            echo "::error::possible secret found"; exit 1
+          fi
+          echo "no secret-looking strings found"

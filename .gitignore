@@ -1,0 +1,19 @@
+# Runtime state written next to the installed scripts (only present if you run from a checkout)
+enabled
+log.jsonl
+catalog.json
+rules.json
+overrides.json
+__pycache__/
+*.pyc
+
+# Never commit credentials or local config
+.env
+.env.*
+*.key
+*.pem
+key_cmd
+settings.json
+hooks.json
+*.bak-jev-*
+.DS_Store

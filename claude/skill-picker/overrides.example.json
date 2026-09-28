@@ -1,0 +1,8 @@
+{
+  "_note": "Hand-written one-line descriptions that replace the auto-derived ones. Jev picks by these lines, so a clearer line is the usual fix for a wrong pick. Copy this file to overrides.json, edit, then run: skill-pick --rebuild",
+  "lines": {
+    "pptx": "Create, read or edit PowerPoint files (.pptx/.potx): pitch decks, slide presentations and templates.",
+    "slides": "Build a presentation as an HTML web page with charts, not as a PowerPoint file."
+  },
+  "exclude": []
+}

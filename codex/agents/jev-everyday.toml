@@ -1,0 +1,5 @@
+name = "jev-everyday"
+description = "An everyday job: a normal email, a short document, a small edit or a routine coding/writing question. Picked by the Jev router."
+developer_instructions = "You were spawned for a routine, everyday job. Do the whole thing properly, then return the finished result plainly, no preamble."
+model = "gpt-6-sol"
+model_reasoning_effort = "medium"
